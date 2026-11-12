@@ -36,3 +36,22 @@ Add Laplace noise to the group for publishing histogram.
 2. After the assignment, we recalculate the centroid of each cluster by averaging the points within it
     - the mean of a centroid is calculated: $c_j={1\over|C_j|} \sum_{x_i \in C_j} x_i$
 3. Repeat this process until the centroids no longer change or the maximum number of iterations is reached
+
+
+## Our implementation
+**Input:** Tuple of (time, personId, energyConsumption)
+**Output:** histogram
+
+K ... Number of cluster
+M ... Maximum number of clusters
+
+for K=1 --> M do  
+    Cluster data through k-means++;  
+    Calculate the SSE (square sum of errors) of clustering;  
+end  
+Draw the relationship graph of K and SSE;  
+Obtain the optimal K value by calculating the adjacent slope change degree based on the graph;  
+Select the clustering result corresponding to the optimal K for forming the group to be released; 
+Fill gaps with intervalls to get a complete range. 
+Add by coin choice a 1 size intervall into every filling intervalls to divide the intervalls.
+Add Laplace noise to the group for publishing histogram.
