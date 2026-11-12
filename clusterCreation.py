@@ -4,11 +4,12 @@ import math
 
 data=[(1,1,20), (1,2,22), (1,3,25), (1,4,27), (1,5,30), (1,6,89)]
 numOfClusters=2
+wholeDomain = None #(0, 100)
 
 def find_clusters(data, numOfClusters):
     different_k = {}
     for k in range (1, len(data)):
-        clusters=k_means_plus_plus(data) #Dict mit cluster als key und liste der zugehörigen Punkte als value
+        clusters=k_means_plus_plus(data, k) #Dict mit cluster als key und liste der zugehörigen Punkte als value
         different_k[k] = sse(clusters) # returns a number, the sum of squared errors for the clustering
 
     #draw_relationship_graph() #TODO: Brauchen wir das? Ich denke nicht
@@ -98,10 +99,29 @@ def calc_optimal_k(different_k):
 
 def get_best_clustering(data,optimal_k):
     clusters = k_means_plus_plus(data, optimal_k)
-    historam = {}
+    histogram = {}
     for cluster in clusters:
-        historam[(clusters[cluster][0], clusters[cluster][-1])] = len(clusters[cluster])
-    return historam
+        histogram[(clusters[cluster][0], clusters[cluster][-1])] = len(clusters[cluster])
+
+    # define start and end
+    bins = sorted(histogram.keys())
+    if wholeDomain is not None:
+        start, end = wholeDomain
+    else:
+        start, end = bins[0][0], bins[-1][1]
+
+    #fill gaps
+    filled_histogram = {}
+    current = start
+    for (a,b) in bins:
+        if a > current: 
+            filled_histogram[(current, a)] = 0
+        filled_histogram[(a,b)] = histogram[(a,b)]
+        current = b
+    if current < end:
+        filled_histogram[(current, end)] = 0
+    
+    return filled_histogram
 
 def add_noise(histogram):
     epsilon = 1.0
@@ -113,9 +133,9 @@ def add_noise(histogram):
 
 
 erg = k_means_plus_plus([20, 22, 25, 27, 30, 89], 2)
-print(erg)
+print("erg:", erg)
 erg2=sse(erg)
-print(erg2)
+print("erg2:", erg2)
 
 print(calc_optimal_k({1: 3497.5, 2: 62.8, 3: 17.17, 4: 4, 5: 2}))
 histogram =get_best_clustering([20, 22, 25, 27, 30, 89], 2)
