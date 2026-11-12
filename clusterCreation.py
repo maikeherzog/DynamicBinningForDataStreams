@@ -6,6 +6,11 @@ data=[(1,1,20), (1,2,22), (1,3,25), (1,4,27), (1,5,30), (1,6,89)]
 numOfClusters=2
 wholeDomain =  (0, 100)
 
+def preproces_stream(data):
+    # Extract the third element from each tuple in the stream
+    processed_data = [item[2] for item in data]
+    return processed_data
+
 def find_clusters(data, numOfClusters):
     different_k = {}
     for k in range (1, len(data)):
@@ -142,13 +147,14 @@ def add_noise(histogram):
     noisy_histogram = {key: value + np.random.laplace(0, scale) for key, value in histogram.items()}
     return noisy_histogram
 
-
-erg = k_means_plus_plus([20, 22, 25, 27, 30, 89], 2)
+data = preproces_stream(data)
+print("data:", data)
+erg = k_means_plus_plus(data, 2)
 print("erg:", erg)
 erg2=sse(erg)
 print("erg2:", erg2)
 
 print(calc_optimal_k({1: 3497.5, 2: 62.8, 3: 17.17, 4: 4, 5: 2}))
-histogram =get_best_clustering([20, 22, 25, 27, 30, 89], 2)
+histogram =get_best_clustering(data, 2)
 print("get_best_clustering:", histogram) 
 print("add_noise:", add_noise(histogram))
