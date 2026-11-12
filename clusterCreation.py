@@ -11,7 +11,7 @@ def preproces_stream(data):
     processed_data = [item[2] for item in data]
     return processed_data
 
-def find_clusters(data, numOfClusters):
+def find_clusters(data):
     different_k = {}
     for k in range (1, len(data)):
         clusters=k_means_plus_plus(data, k) #Dict mit cluster als key und liste der zugehörigen Punkte als value
@@ -19,9 +19,9 @@ def find_clusters(data, numOfClusters):
 
     #draw_relationship_graph() #TODO: Brauchen wir das? Ich denke nicht
     optimal_k = calc_optimal_k(different_k)
-    get_best_clustering(data,optimal_k) 
-    add_noise()
-    return 0
+    histogram = get_best_clustering(data,optimal_k) 
+    noisy_histogram = add_noise(histogram)
+    return noisy_histogram
 
 def k_means_plus_plus(values, numOfClusters):
     clusters = []
@@ -158,3 +158,5 @@ print(calc_optimal_k({1: 3497.5, 2: 62.8, 3: 17.17, 4: 4, 5: 2}))
 histogram =get_best_clustering(data, 2)
 print("get_best_clustering:", histogram) 
 print("add_noise:", add_noise(histogram))
+
+print("find_clusters:", find_clusters(data))
