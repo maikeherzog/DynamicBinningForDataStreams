@@ -4,7 +4,7 @@ import math
 
 data=[(1,1,20), (1,2,22), (1,3,25), (1,4,27), (1,5,30), (1,6,89)]
 numOfClusters=2
-wholeDomain = None #(0, 100)
+wholeDomain =  (0, 100)
 
 def find_clusters(data, numOfClusters):
     different_k = {}
@@ -97,6 +97,17 @@ def calc_optimal_k(different_k):
     best_k = max(bending, key=bending.get)
     return best_k
 
+def add_gap(histogram, low, high):
+    flip = random.randint(0,1)
+    if flip < 0.5 and high - low > 1:
+        histogram[(low, high)] = 0
+    else: 
+        p = random.randint(low+1, high-1)
+        histogram[(low, p)] = 0
+        histogram[(p, p)] = 0
+        histogram[(p, high)] = 0
+    return histogram
+
 def get_best_clustering(data,optimal_k):
     clusters = k_means_plus_plus(data, optimal_k)
     histogram = {}
@@ -115,11 +126,11 @@ def get_best_clustering(data,optimal_k):
     current = start
     for (a,b) in bins:
         if a > current: 
-            filled_histogram[(current, a)] = 0
+            add_gap(filled_histogram, current, a)
         filled_histogram[(a,b)] = histogram[(a,b)]
         current = b
     if current < end:
-        filled_histogram[(current, end)] = 0
+        add_gap(filled_histogram, current, end)
     
     return filled_histogram
 
