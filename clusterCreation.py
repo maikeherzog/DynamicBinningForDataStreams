@@ -5,6 +5,7 @@ import math
 data=[(1,1,20), (1,2,22), (1,3,25), (1,4,27), (1,5,30), (1,6,89)]
 numOfClusters=2
 wholeDomain =  (0, 100)
+threshold = 0.1
 
 def preproces_stream(data):
     # Extract the third element from each tuple in the stream
@@ -147,6 +148,20 @@ def add_noise(histogram):
     noisy_histogram = {key: value + np.random.laplace(0, scale) for key, value in histogram.items()}
     return noisy_histogram
 
+def calc_distribution(histogram):
+    total_count = sum(histogram.values())
+    distribution = {key: value / total_count for key, value in histogram.items()}
+    return distribution
+
+def compare_distributions(dist1, dist2):
+    total_difference = 0
+    total_difference = 0.5*sum(abs(dist1.get(key, 0) - dist2.get(key, 0)) for key in set(dist1.keys()).union(set(dist2.keys())))
+    return total_difference
+
+def check_for_recalculation(dist1, dist2, threshold): # True: we dont need to recalculate, False: we need to recalculate
+    difference = compare_distributions(dist1, dist2)
+    return difference < threshold
+
 data = preproces_stream(data)
 print("data:", data)
 erg = k_means_plus_plus(data, 2)
@@ -158,5 +173,9 @@ print(calc_optimal_k({1: 3497.5, 2: 62.8, 3: 17.17, 4: 4, 5: 2}))
 histogram =get_best_clustering(data, 2)
 print("get_best_clustering:", histogram) 
 print("add_noise:", add_noise(histogram))
+print("calc_distribution:", calc_distribution(histogram))
+hist = calc_distribution(histogram)
+print("compare_distributions:", compare_distributions(hist, add_noise(histogram)))
+print("check_for_recalculation:", check_for_recalculation(hist, hist, threshold))
 
-print("find_clusters:", find_clusters(data))
+#print("find_clusters:", find_clusters(data))

@@ -55,3 +55,9 @@ Select the clustering result corresponding to the optimal K for forming the grou
 Fill gaps with intervalls to get a complete range. 
 Add by coin choice a 1 size intervall into every filling intervalls to divide the intervalls.
 Add Laplace noise to the group for publishing histogram.
+
+### Distance calculation of two histogramms
+
+We check distribution of a histogram by calculate the percentage of each bin to the total count of datapoints.
+By using theTotal Variation Distance (TVD): $1/2 * \sum((\abs p_2 -p_1)) we calculate the shift from the older hist to the newer.
+We define a threshold. If this threshold is reached we need to recalculate the Intervalls for the new histogram. If not we output the histogram with the old bins.
