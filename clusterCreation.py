@@ -36,7 +36,7 @@ def find_clusters(data, max_clusters):
     upper = min(max_clusters, n_distinct)
     
     different_k = {}
-    for k in range (1, upper +1): #TODO len(data) durch ein Maximum für erzeugte Clusterersetzen
+    for k in range (1, upper +1): 
         clusters=k_means_plus_plus(data, k) #Dict mit cluster als key und liste der zugehörigen Punkte als value
         different_k[k] = sse(clusters) # returns a number, the sum of squared errors for the clustering
 
