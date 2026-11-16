@@ -3,9 +3,25 @@ import random
 import math
 
 #data=[(1,1,20), (1,2,22), (1,3,25), (1,4,27), (1,5,30), (1,6,89)]
-data=[(1,1,20), (1,2,21), (1,3,22), (1,4,21), (1,5,20), (1,6,22)]
+#data=[(1,1,20), (1,2,21), (1,3,22), (1,4,21), (1,5,20), (1,6,22)] #(time, person_id, value)
+data = [
+    # Phase 1: Werte überwiegend um 20–30, einzelne um 85–90
+    (1, 1, 21), (1, 2, 88),
+    (2, 3, 24), (2, 1, 22),
+    (3, 2, 90), (3, 4, 27),
+    (4, 3, 25),
+    (5, 1, 23), (5, 4, 86),
+    (6, 2, 28),
+    # Phase 2: Verteilung verschiebt sich nach 50–60
+    (7, 1, 52), (7, 3, 55),
+    (8, 4, 58), (8, 2, 87),
+    (9, 1, 54),
+    (10, 3, 57), (10, 4, 60),
+    (11, 2, 53),
+    (12, 1, 89), (12, 3, 56),
+]
 wholeDomain =  (0, 100)
-threshold = 0.1
+threshold = 2
 windowSize = 4
 maxClusters = windowSize 
 currentPlace = 0
@@ -16,7 +32,6 @@ def preproces_stream(data):
     return processed_data
 
 def find_clusters(data, max_clusters):
-    print ("data in find_clusters:", data)
     n_distinct = len(np.unique(data))
     upper = min(max_clusters, n_distinct)
     
@@ -116,7 +131,6 @@ def add_gap(histogram, low, high):
         histogram[(low, high)] = 0
     else: 
         p = random.uniform(low, high)
-        print("p:", p)
         histogram[(low, p)] = 0
         histogram[(p, p)] = 0
         histogram[(p, high)] = 0
@@ -168,23 +182,29 @@ def compare_distributions(dist1, dist2):
 
 def check_for_recalculation(dist1, dist2, threshold): # True: we dont need to recalculate, False: we need to recalculate
     difference = compare_distributions(dist1, dist2)
+    print("difference:", difference)
     return difference < threshold
+
+def get_window(dataStream, windowSize, currentPlace):
+    return [tuple for tuple in dataStream if currentPlace <= tuple[0] < currentPlace + windowSize]
 
 def process_window(dataStream, windowSize, currentPlace, threshold, max_clusters): # windowsize should not be smaller than 4
     data = dataStream[currentPlace:currentPlace + windowSize]
-    print("data:", data)
     preprocessed_data = preproces_stream(data)
     noisy_histogram = find_clusters(preprocessed_data, max_clusters) # here we have the noisy histogram
     currentPlace += 1
-    while currentPlace + windowSize <= len(dataStream):
-        next_data = dataStream[currentPlace:currentPlace + windowSize]
-        print("next_data:", next_data)
+    max_time = max([tuple[0] for tuple in dataStream])
+    while currentPlace + windowSize <= max_time: #TODO: hier wäre eine andere Abbruchbedingung sinnvoll, da wir ja eigentlich die letzte Zeit nicht kennen
+        print("currentPlace:", currentPlace)
+        next_data = get_window(dataStream, windowSize, currentPlace)
         preprocessed_data = preproces_stream(next_data)
         next_noisy_histogram = find_clusters(preprocessed_data, max_clusters) # here we have the noisy histogram
         check = check_for_recalculation(calc_distribution(noisy_histogram), calc_distribution(next_noisy_histogram), threshold)
         if not check:
             noisy_histogram = next_noisy_histogram
             print("Recalculation needed. New histogram:", noisy_histogram)
+        if check:
+            print("No recalculation needed. Histogram remains the same.")
         currentPlace += 1
         data = next_data
     return noisy_histogram
