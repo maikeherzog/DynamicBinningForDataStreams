@@ -183,7 +183,7 @@ def compare_distributions(dist1, dist2):
 def check_for_recalculation(dist1, dist2, threshold): # True: we dont need to recalculate, False: we need to recalculate
     difference = compare_distributions(dist1, dist2)
     print("difference:", difference)
-    return difference < threshold
+    return difference <= threshold
 
 def get_window(dataStream, windowSize, currentPlace):
     return [tuple for tuple in dataStream if currentPlace <= tuple[0] < currentPlace + windowSize]
