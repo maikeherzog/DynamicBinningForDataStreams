@@ -2,19 +2,26 @@ import numpy as np
 import random
 import math
 
-data=[(1,1,20), (1,2,22), (1,3,25), (1,4,27), (1,5,30), (1,6,89)]
-numOfClusters=2
+#data=[(1,1,20), (1,2,22), (1,3,25), (1,4,27), (1,5,30), (1,6,89)]
+data=[(1,1,20), (1,2,21), (1,3,22), (1,4,21), (1,5,20), (1,6,22)]
 wholeDomain =  (0, 100)
 threshold = 0.1
+windowSize = 4
+maxClusters = windowSize 
+currentPlace = 0
 
 def preproces_stream(data):
     # Extract the third element from each tuple in the stream
     processed_data = [item[2] for item in data]
     return processed_data
 
-def find_clusters(data):
+def find_clusters(data, max_clusters):
+    print ("data in find_clusters:", data)
+    n_distinct = len(np.unique(data))
+    upper = min(max_clusters, n_distinct)
+    
     different_k = {}
-    for k in range (1, len(data)):
+    for k in range (1, upper +1): #TODO len(data) durch ein Maximum für erzeugte Clusterersetzen
         clusters=k_means_plus_plus(data, k) #Dict mit cluster als key und liste der zugehörigen Punkte als value
         different_k[k] = sse(clusters) # returns a number, the sum of squared errors for the clustering
 
@@ -24,11 +31,11 @@ def find_clusters(data):
     noisy_histogram = add_noise(histogram)
     return noisy_histogram
 
-def k_means_plus_plus(values, numOfClusters):
+def k_means_plus_plus(values, num_of_clusters):
     clusters = []
     c1 = np.random.choice(values) #values has to be a list
     clusters.append(c1)
-    while len(clusters) < numOfClusters:
+    while len(clusters) < num_of_clusters:
         distances = distancePoints(values, clusters)
         selection_probabilitys = selection_probability(distances)
         nextCluster = rouletteWheel(values, selection_probabilitys)
@@ -108,7 +115,8 @@ def add_gap(histogram, low, high):
     if flip < 0.5 and high - low > 1:
         histogram[(low, high)] = 0
     else: 
-        p = random.randint(low+1, high-1)
+        p = random.uniform(low, high)
+        print("p:", p)
         histogram[(low, p)] = 0
         histogram[(p, p)] = 0
         histogram[(p, high)] = 0
@@ -162,20 +170,41 @@ def check_for_recalculation(dist1, dist2, threshold): # True: we dont need to re
     difference = compare_distributions(dist1, dist2)
     return difference < threshold
 
-data = preproces_stream(data)
-print("data:", data)
-erg = k_means_plus_plus(data, 2)
-print("erg:", erg)
-erg2=sse(erg)
-print("erg2:", erg2)
+def process_window(dataStream, windowSize, currentPlace, threshold, max_clusters): # windowsize should not be smaller than 4
+    data = dataStream[currentPlace:currentPlace + windowSize]
+    print("data:", data)
+    preprocessed_data = preproces_stream(data)
+    noisy_histogram = find_clusters(preprocessed_data, max_clusters) # here we have the noisy histogram
+    currentPlace += 1
+    while currentPlace + windowSize <= len(dataStream):
+        next_data = dataStream[currentPlace:currentPlace + windowSize]
+        print("next_data:", next_data)
+        preprocessed_data = preproces_stream(next_data)
+        next_noisy_histogram = find_clusters(preprocessed_data, max_clusters) # here we have the noisy histogram
+        check = check_for_recalculation(calc_distribution(noisy_histogram), calc_distribution(next_noisy_histogram), threshold)
+        if not check:
+            noisy_histogram = next_noisy_histogram
+            print("Recalculation needed. New histogram:", noisy_histogram)
+        currentPlace += 1
+        data = next_data
+    return noisy_histogram
 
-print(calc_optimal_k({1: 3497.5, 2: 62.8, 3: 17.17, 4: 4, 5: 2}))
-histogram =get_best_clustering(data, 2)
-print("get_best_clustering:", histogram) 
-print("add_noise:", add_noise(histogram))
-print("calc_distribution:", calc_distribution(histogram))
-hist = calc_distribution(histogram)
-print("compare_distributions:", compare_distributions(hist, add_noise(histogram)))
-print("check_for_recalculation:", check_for_recalculation(hist, hist, threshold))
+
+#data = preproces_stream(data)
+#print("data:", data)
+#erg = k_means_plus_plus(data, 2)
+#print("erg:", erg)
+#erg2=sse(erg)
+#print("erg2:", erg2)
+
+#print(calc_optimal_k({1: 3497.5, 2: 62.8, 3: 17.17, 4: 4, 5: 2}))
+#histogram =get_best_clustering(data, 2)
+#print("get_best_clustering:", histogram) 
+#print("add_noise:", add_noise(histogram))
+#print("calc_distribution:", calc_distribution(histogram))
+#hist = calc_distribution(histogram)
+#print("compare_distributions:", compare_distributions(hist, add_noise(histogram)))
+#print("check_for_recalculation:", check_for_recalculation(hist, hist, threshold))
 
 #print("find_clusters:", find_clusters(data))
+print("process_window:", process_window(data, windowSize, currentPlace, threshold, maxClusters))
