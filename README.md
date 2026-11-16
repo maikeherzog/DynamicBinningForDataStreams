@@ -42,9 +42,25 @@ Add Laplace noise to the group for publishing histogram.
 **Input:** Tuple of (time, personId, energyConsumption)
 **Output:** histogram
 
-K ... Number of cluster
-M ... Maximum number of clusters
+### Variables
+maxClusters ... Maximum number of clusters
+wholeDomain ... complete x-axis
+threshold ... to define when a new intervall calculation is needed
+windowSize ... size of the window
+currentPlace ... current time position
 
+### Overall funktion
+calculate the current window
+preprocess stream to get the numeric values 
+calculate the noisy histogram
+while we are not at the end of the stream
+    calculate noisy histogram for next window
+    compare to histogram from window before
+    if distance under the threshold --> output old histogram
+    if distance over the threshold --> output new histogram
+    shift window one step
+
+### Calculation of a new noisy histogram
 for K=1 --> M do  
     Cluster data through k-means++;  
     Calculate the SSE (square sum of errors) of clustering;  
