@@ -1,0 +1,50 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("results/thresholds.csv")
+
+# pro Lauf: Summe der Abweichung und Anzahl Neuberechnungen (ohne das erste Histogramm)
+per_run = (df.groupby(["threshold", "run"])
+             .agg(error_sum=("error", "sum"), recalcs=("recalculated", "sum"))
+             .reset_index())
+per_run["recalcs"] -= 1
+
+# pro Schwelle: Mittelwert und Streuung
+summary = per_run.groupby("threshold").agg(
+    err_mean=("error_sum", "mean"), err_std=("error_sum", "std"),
+    recalcs_mean=("recalcs", "mean")).reset_index()
+
+x = np.arange(len(summary))
+fig, ax = plt.subplots(figsize=(8, 5))
+
+# Balken = Mittelwert, Fehlerbalken = Standardabweichung
+bars = ax.bar(x, summary["err_mean"], yerr=summary["err_std"], width=0.6,
+              color="#2a6fdb", capsize=4, ecolor="#555555")
+
+# einzelne Läufe als Punkte
+for i, t in enumerate(summary["threshold"]):
+    werte = per_run.loc[per_run["threshold"] == t, "error_sum"]
+    jitter = np.random.uniform(-0.15, 0.15, len(werte))
+    ax.scatter(x[i] + jitter, werte, s=12, color="#1a1a1a", alpha=0.5, zorder=3)
+
+# Anzahl Neuberechnungen im Balken (bei sehr kleinen Balken darüber)
+ymax = summary["err_mean"].max()
+for i, row in summary.iterrows():
+    text = f"{row['recalcs_mean']:.0f}"
+    if row["err_mean"] > 0.15 * ymax:
+        ax.text(x[i], row["err_mean"] / 2, text, ha="center", va="center",
+                color="white", fontsize=11, fontweight="bold")
+    else:
+        ax.text(x[i], row["err_mean"] + 0.03 * ymax, text, ha="center", va="bottom",
+                color="#1a1a1a", fontsize=11)
+
+ax.set_xticks(x, [str(t) for t in summary["threshold"]])
+ax.set_xlabel("Threshold")
+ax.set_ylabel("Summierte Abweichung")
+ax.set_title("Summierte Abweichung je Threshold\n(Zahl = Ø Neuberechnungen)")
+ax.spines[["top", "right"]].set_visible(False)
+
+plt.tight_layout()
+plt.savefig("results/difference_per_threshold.png", dpi=150)
+plt.show()
