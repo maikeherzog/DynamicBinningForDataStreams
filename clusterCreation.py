@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 import random
 import math
+from load_london import load_london
+import time
+from collections import defaultdict
 
 #data=[(1,1,20), (1,2,22), (1,3,25), (1,4,27), (1,5,30), (1,6,89)]
 #data=[(1,1,20), (1,2,21), (1,3,22), (1,4,21), (1,5,20), (1,6,22)] #(time, person_id, value)
@@ -82,7 +85,7 @@ data3 = [
     (4, 1, 23), (4, 4, 86),
     (4, 2, 28),
 ]
-wholeDomain =  (0, 100)
+wholeDomain =  (0, 17)
 threshold = 1
 windowSize = 1
 maxClusters = 8 
@@ -251,7 +254,8 @@ def compare_distributions(dist1, dist2):
 
 def check_for_recalculation(dist1, dist2, threshold): # True: we dont need to recalculate, False: we need to recalculate
     difference = compare_distributions(dist1, dist2)
-    print("difference:", difference)
+    #print("difference:", difference)
+    # print(f"TVD = {difference:.3f}")
     return difference <= threshold
 
 def get_window(dataStream, windowSize, currentPlace):
@@ -272,41 +276,55 @@ def build_histogram_with_old_interval(data, bins):
     return histogram, outside_bin
 
 def output_histogram(histogram):
-    print("Histogram:", histogram)
+    #print("Histogram:", histogram)
+    pass
 
-def process_window(dataStream, windowSize, currentPlace, threshold, max_clusters): # windowsize should not be smaller than 4
+def get_window(by_day, start, windowSize):
+    return [tup for day in range(start, start + windowSize) for tup in by_day[day]]
+
+def process_window(dataStream, windowSize, currentPlace, threshold, max_clusters, timeStep=1): # windowsize should not be smaller than 4
+    by_day = defaultdict(list)
+    for tup in dataStream:
+        by_day[tup[0]].append(tup)
+
+    currentPlace = min(by_day)
+    max_time = max(by_day)
+
     currentPlace = min(tup[0] for tup in dataStream)
     #data = dataStream[currentPlace:currentPlace + windowSize]
-    data = [tup for tup in dataStream if currentPlace <= tup[0] < currentPlace + windowSize]
-    preprocessed_data = preproces_stream(data)
+    #data = [tup for tup in dataStream if currentPlace <= tup[0] < currentPlace + windowSize]
+    preprocessed_data = preproces_stream(get_window(by_day, currentPlace, windowSize))
     noisy_histogram = find_clusters(preprocessed_data, max_clusters) # here we have the noisy histogram
     current_bins = noisy_histogram.keys()
     currentPlace += 1
     max_time = max([tuple[0] for tuple in dataStream])
-    print("------------------------------------------------------")
-    print("first Histogram:")
+    #print("------------------------------------------------------")
+    #print("first Histogram:")
     output_histogram(noisy_histogram)
-    while currentPlace - 1 + windowSize <= max_time: #TODO: hier wäre eine andere Abbruchbedingung sinnvoll, da wir ja eigentlich die letzte Zeit nicht kennen
-        print("currentPlace:", currentPlace)
-        next_data = get_window(dataStream, windowSize, currentPlace)
-        preprocessed_data = preproces_stream(next_data)
+    recalculations = 0
+    while currentPlace + windowSize <= max_time + timeStep: #TODO: hier wäre eine andere Abbruchbedingung sinnvoll, da wir ja eigentlich die letzte Zeit nicht kennen
+        #print("currentPlace:", currentPlace)
+        #next_data = get_window(dataStream, windowSize, currentPlace)
+        preprocessed_data = preproces_stream(get_window(by_day, currentPlace, windowSize))
         next_histogram, outside = build_histogram_with_old_interval(preprocessed_data, current_bins)
-        print("Outside", outside)
+        #print("Outside", outside)
         next_noisy_histogram = add_noise(next_histogram)
         #next_noisy_histogram = find_clusters(preprocessed_data, max_clusters) # here we have the noisy histogram
         check = check_for_recalculation(calc_distribution(noisy_histogram), calc_distribution(next_noisy_histogram), threshold)
         if not check:
             noisy_histogram = find_clusters(preprocessed_data, max_clusters)
             current_bins = noisy_histogram.keys()
-            print("------------------------------------------------------")
-            print("Recalculation needed. New histogram:")
-            output_histogram(noisy_histogram)
+            #print("------------------------------------------------------")
+            #print("Recalculation needed. New histogram:")
+            #output_histogram(noisy_histogram)
+            recalculations += 1
         if check:
-            print("------------------------------------------------------")
-            print("No recalculation needed. Histogram remains the same.")
-            output_histogram(next_noisy_histogram)
+            #print("------------------------------------------------------")
+            #print("No recalculation needed. Histogram remains the same.")
+            #output_histogram(next_noisy_histogram)
+            pass
         currentPlace += 1
-        data = next_data
+    print(f"Neu berechnet an {recalculations} von {currentPlace - min(by_day) - 1} Tagen")  
     return True
 
 
@@ -327,4 +345,19 @@ def process_window(dataStream, windowSize, currentPlace, threshold, max_clusters
 #print("check_for_recalculation:", check_for_recalculation(hist, hist, threshold))
 
 #print("find_clusters:", find_clusters(data))
-print("process_window:", process_window(data3, windowSize, currentPlace, threshold, maxClusters))
+#print("process_window:", process_window(data3, windowSize, currentPlace, threshold, maxClusters))
+
+if __name__ == "__main__":
+    data = load_london(max_users=None, end_date="2012-01-31") 
+
+    wholeDomain = (0, 17)
+    windowSize = 1          # 1 Tag pro Fenster
+    maxClusters = 8
+    threshold = 0.1
+    currentPlace = 0        # wird in process_window überschrieben
+
+    for i in range(1,10):
+        start = time.perf_counter()
+        print("Durchgang: ", i)
+        process_window(data, windowSize, currentPlace, threshold, maxClusters)
+        print(f"Laufzeit: {time.perf_counter() - start:.1f} s")
